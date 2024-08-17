@@ -29,20 +29,25 @@ module.exports = socketIoLoader = (io) => {
             io.sockets.to(socket.id).emit('all_users', usersInThisRoom);
         });
 
+        // WebRTC 연결을 시도
         socket.on('offer', (data) => {
             //console.log(data.sdp);
+            // 대상 사용자에게 연결 제안(offer)을 전송.
             socket.to(data.offerReceiveID).emit('getOffer', {
                 sdp: data.sdp,
                 offerSendID: data.offerSendID,
+                // TODO : user_id로 변경
                 offerSendEmail: data.offerSendEmail,
             });
         });
 
+        // WebRTC 연결에 대한 응답 처리
         socket.on('answer', (data) => {
             //console.log(data.sdp);
             socket.to(data.answerReceiveID).emit('getAnswer', { sdp: data.sdp, answerSendID: data.answerSendID });
         });
 
+        // ICE 후보 정보 전송
         socket.on('candidate', (data) => {
             //console.log(data.candidate);
             socket.to(data.candidateReceiveID).emit('getCandidate', {
@@ -51,6 +56,7 @@ module.exports = socketIoLoader = (io) => {
             });
         });
 
+        // 클라이언트 연결 해제 처리
         socket.on('disconnect', () => {
             console.log(`[${socketToRoom[socket.id]}]: ${socket.id} exit`);
             const roomID = socketToRoom[socket.id];
