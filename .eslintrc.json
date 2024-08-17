@@ -1,0 +1,20 @@
+{
+    "extends": ["airbnb-base", "plugin:prettier/recommended"],
+    "plugins": ["prettier"],
+    "rules": {
+        "prettier/prettier": [
+            "error",
+            {
+                "endOfLine": "auto",
+                "singleQuote": true,
+                "useTabs": false
+            }
+        ],
+        "no-console": "off"
+    },
+    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
+    "env": {
+        "browser": true,
+        "node": true
+    }
+}
