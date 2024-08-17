@@ -13,6 +13,7 @@ const config = {
     // SERVER
     port: process.env.PORT || 8085,
     domainName: process.env.DOMAIN_NAME,
+    corsWhiteList: process.env.CORS_WHITELIST,
 
     // RTC
     maximumConnection: process.env.MAXIMUM_CONNECTION,
