@@ -11,7 +11,7 @@ if (env.error) {
 
 const config = {
     // SERVER
-    port: process.env.PORT || 8085,
+    port: process.env.PORT || 8083,
     domainName: process.env.DOMAIN_NAME,
     corsWhiteList: process.env.CORS_WHITELIST,
 
