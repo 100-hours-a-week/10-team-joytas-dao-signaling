@@ -1,4 +1,4 @@
-const conf = require('../config');
+const config = require('../config');
 const dayjs = require('dayjs');
 
 const mode = {
@@ -8,8 +8,8 @@ const mode = {
 
 exports.START_MESSAGE = `
 ================================================================
-DAO Signaling Server has been started at https://${conf.domainName}:${conf.port}
+DAO Signaling Server has been started at https://${config.serverPath}
 Start Datetime : ${dayjs().format('YYYY.MM.DD H:mm:ss')}
-Mode : ${mode[conf.envMode]}
+Mode : ${mode[config.envMode]}
 ================================================================
 `;

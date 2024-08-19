@@ -12,7 +12,7 @@ if (env.error) {
 const config = {
     // SERVER
     port: process.env.PORT || 8083,
-    domainName: process.env.DOMAIN_NAME,
+    serverPath: process.env.SERVER_PATH,
     corsWhiteList: process.env.CORS_WHITELIST,
 
     // RTC
