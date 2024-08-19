@@ -22,12 +22,15 @@ const config = {
 switch (process.env.NODE_ENV) {
     case 'production':
         config.envMode = 'prod';
+        break;
 
     case 'development':
         config.envMode = 'dev';
+        break;
 
     default:
         console.warn(ErrorMessage.NODE_ENV_WRONG);
+        break;
 }
 
 module.exports = config;

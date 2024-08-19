@@ -6,7 +6,8 @@ module.exports = expressLoader = (app) => {
         cors({
             credentials: true,
             origin: (origin, callback) => {
-                if (config.corsWhiteList.indexOf(origin) !== -1) {
+                // TODO : SSL 연결 후 !origin 삭제
+                if (config.corsWhiteList.indexOf(origin) !== -1 || !origin) {
                     return callback(null, true);
                 }
                 console.warn(`Blocked CORS request from: ${origin}`);
