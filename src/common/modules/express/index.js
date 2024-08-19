@@ -15,4 +15,8 @@ module.exports = expressLoader = (app) => {
             },
         })(req, res, next);
     });
+
+    app.use('/', (req, res) => {
+        res.status(200).send('DAO SIGNALING SERVER');
+    });
 };
