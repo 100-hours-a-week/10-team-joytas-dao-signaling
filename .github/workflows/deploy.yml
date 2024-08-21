@@ -37,6 +37,9 @@ jobs:
                   echo "" >> .env
                   echo "# RTC" >> .env
                   echo "MAXIMUM_CONNECTION=${{ secrets.MAXIMUM_CONNECTION }}" >> .env
+                  echo "" >> .env
+                  echo "# SPRING" >> .env
+                  echo "SPRING_SERVER_URL=${{ secrets.SPRING_SERVER_URL }}" >> .env
 
             - name: Run Docker container # Docker 컨테이너 실행
               run: |

@@ -17,6 +17,9 @@ const config = {
 
     // RTC
     maximumConnection: process.env.MAXIMUM_CONNECTION,
+
+    // SPRING
+    springServerUrl: process.env.SPRING_SERVER_URL,
 };
 
 switch (process.env.NODE_ENV) {
