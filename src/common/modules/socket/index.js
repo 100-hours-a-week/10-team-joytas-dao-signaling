@@ -15,11 +15,16 @@ module.exports = socketIoLoader = (io) => {
             try {
                 const response = await axios.post(
                     config.springServerUrl,
-                    { objet_id },
+                    {
+                        objet_id,
+                    },
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         },
+                        httpsAgent: new https.Agent({
+                            rejectUnauthorized: false,
+                        }),
                     }
                 );
                 console.log('Data : ', response.data);
