@@ -1,7 +1,9 @@
 const cors = require('cors');
 const config = require('../../config');
+const morgan = require('morgan');
 
 module.exports = expressLoader = (app) => {
+    app.use(morgan('dev'));
     app.use((req, res, next) => {
         cors({
             credentials: true,
