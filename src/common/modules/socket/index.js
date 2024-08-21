@@ -1,32 +1,63 @@
+const axios = require('axios');
+const config = require('../../config');
+
 module.exports = socketIoLoader = (io) => {
     let users = {};
 
-    let socketToRoom = {};
+    let socketToObjet = {};
 
-    const maximum = process.env.MAXIMUM || 9;
+    const maximum = config.maximumConnection || 9;
 
-    io.on('connection', (socket) => {
-        socket.on('join_room', (data) => {
-            if (users[data.room]) {
-                const length = users[data.room].length;
+    io.on('connection', async (socket) => {
+        const token = socket.handshake.query.token;
+        const objet_id = socket.handshake.query.objet_id;
+        if (token && objet_id) {
+            try {
+                const response = await axios.post(
+                    config.springServerUrl,
+                    { objet_id },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+                console.log('Data : ', response.data);
+            } catch (err) {
+                console.error('token error:', err.response?.data);
+                socket.emit('error_message', {
+                    error: err.response?.data || 'Unknown error',
+                });
+                socket.disconnect(true);
+                return;
+            }
+        } else {
+            console.log('token or objet_id is missing');
+            socket.disconnect(true);
+            return;
+        }
+
+        socket.on('join_objet', (data) => {
+            if (users[data.objet]) {
+                const length = users[data.objet].length;
                 if (length === maximum) {
-                    socket.to(socket.id).emit('room_full');
+                    socket.to(socket.id).emit('objet_full');
                     return;
                 }
-                users[data.room].push({ id: socket.id, email: data.email });
+                users[data.objet].push({ id: socket.id, nickname: data.nickname });
             } else {
-                users[data.room] = [{ id: socket.id, email: data.email }];
+                users[data.objet] = [{ id: socket.id, nickname: data.nickname }];
             }
-            socketToRoom[socket.id] = data.room;
+            socketToObjet[socket.id] = data.objet;
 
-            socket.join(data.room);
-            console.log(`[${socketToRoom[socket.id]}]: ${socket.id} enter`);
+            socket.join(data.objet);
+            console.log(`[${socketToObjet[socket.id]}]: ${socket.id} enter`);
 
-            const usersInThisRoom = users[data.room].filter((user) => user.id !== socket.id);
+            const usersInThisObjet = users[data.objet].filter((user) => user.id !== socket.id);
 
-            console.log(usersInThisRoom);
+            console.log(usersInThisObjet);
 
-            io.sockets.to(socket.id).emit('all_users', usersInThisRoom);
+            io.sockets.to(socket.id).emit('all_users', usersInThisObjet);
         });
 
         // WebRTC 연결을 시도
@@ -37,7 +68,7 @@ module.exports = socketIoLoader = (io) => {
                 sdp: data.sdp,
                 offerSendID: data.offerSendID,
                 // TODO : user_id로 변경
-                offerSendEmail: data.offerSendEmail,
+                offerSendNickname: data.offerSendNickname,
             });
         });
 
@@ -58,18 +89,18 @@ module.exports = socketIoLoader = (io) => {
 
         // 클라이언트 연결 해제 처리
         socket.on('disconnect', () => {
-            console.log(`[${socketToRoom[socket.id]}]: ${socket.id} exit`);
-            const roomID = socketToRoom[socket.id];
-            let room = users[roomID];
-            if (room) {
-                room = room.filter((user) => user.id !== socket.id);
-                users[roomID] = room;
-                if (room.length === 0) {
-                    delete users[roomID];
+            console.log(`[${socketToObjet[socket.id]}]: ${socket.id} exit`);
+            const objetID = socketToObjet[socket.id];
+            let objet = users[objetID];
+            if (objet) {
+                objet = objet.filter((user) => user.id !== socket.id);
+                users[objetID] = objet;
+                if (objet.length === 0) {
+                    delete users[objetID];
                     return;
                 }
             }
-            socket.to(roomID).emit('user_exit', { id: socket.id });
+            socket.to(objetID).emit('user_exit', { id: socket.id });
             console.log(users);
         });
     });
