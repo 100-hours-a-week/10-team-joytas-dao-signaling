@@ -1,5 +1,6 @@
 const axios = require('axios');
 const config = require('../../config');
+const https = require('https');
 
 module.exports = socketIoLoader = (io) => {
     let users = {};
@@ -20,6 +21,9 @@ module.exports = socketIoLoader = (io) => {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         },
+                        httpsAgent: new https.Agent({
+                            rejectUnauthorized: false,
+                        }),
                     }
                 );
                 console.log('Data : ', response.data);
