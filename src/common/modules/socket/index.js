@@ -42,23 +42,24 @@ module.exports = socketIoLoader = (io) => {
         }
 
         socket.on('join_objet', (data) => {
-            const { nickname, user_id, profile_image } = data;
-            if (users[data.objet]) {
-                const length = users[data.objet].length;
-                if (length === maximum) {
+            const { objet_id, nickname, user_id, profile_image } = data;
+
+            if (users[objet_id]) {
+                const objetConnectNumber = users[objet_id].length;
+                if (objetConnectNumber === maximum) {
                     socket.to(socket_id).emit('objet_full');
                     return;
                 }
-                users[data.objet].push({ socket_id, nickname, user_id, profile_image });
+                users[objet_id].push({ socket_id, nickname, user_id, profile_image });
             } else {
-                users[data.objet] = [{ socket_id, nickname, user_id, profile_image }];
+                users[objet_id] = [{ socket_id, nickname, user_id, profile_image }];
             }
-            socketToObjet[socket_id] = data.objet;
+            socketToObjet[socket_id] = objet_id;
 
-            socket.join(data.objet);
+            socket.join(objet_id);
             console.log(`[${socketToObjet[socket_id]}]: ${socket_id} enter`);
 
-            const usersInThisObjet = users[data.objet].filter((user) => user.socket_id !== socket_id);
+            const usersInThisObjet = users[objet_id].filter((user) => user.socket_id !== socket_id);
 
             console.log(usersInThisObjet);
 
