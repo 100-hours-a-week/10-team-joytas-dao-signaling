@@ -10,14 +10,13 @@ module.exports = socketIoLoader = (io) => {
     const maximum = config.maximumConnection || 9;
 
     io.on('connection', async (socket) => {
-        const { token, objet_id, profile_image } = socket.handshake.query;
-        if (token && objet_id) {
+        const socketId = socket.id;
+        const { token, objetId } = socket.handshake.query;
+        if (token && objetId) {
             try {
                 const response = await axios.post(
                     config.springServerUrl,
-                    {
-                        objet_id,
-                    },
+                    { objetId },
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -39,33 +38,33 @@ module.exports = socketIoLoader = (io) => {
                 return;
             }
         } else {
-            console.log('token or objet_id is missing');
+            console.log('token or objetId is missing');
             socket.disconnect(true);
             return;
         }
 
         socket.on('join_objet', (data) => {
-            const { nickname, user_id, profile_image } = data;
+            const { nickname, userId, profileImage } = data;
             if (users[data.objet]) {
                 const length = users[data.objet].length;
                 if (length === maximum) {
-                    socket.to(socket.id).emit('objet_full');
+                    socket.to(socketId).emit('objet_full');
                     return;
                 }
-                users[data.objet].push({ id: socket.id, nickname, user_id, profile_image });
+                users[data.objet].push({ socketId, nickname, userId, profileImage });
             } else {
-                users[data.objet] = [{ id: socket.id, nickname, user_id, profile_image }];
+                users[data.objet] = [{ socketId, nickname, userId, profileImage }];
             }
-            socketToObjet[socket.id] = data.objet;
+            socketToObjet[socketId] = data.objet;
 
             socket.join(data.objet);
-            console.log(`[${socketToObjet[socket.id]}]: ${socket.id} enter`);
+            console.log(`[${socketToObjet[socketId]}]: ${socketId} enter`);
 
-            const usersInThisObjet = users[data.objet].filter((user) => user.id !== socket.id);
+            const usersInThisObjet = users[data.objet].filter((user) => user.id !== socketId);
 
             console.log(usersInThisObjet);
 
-            io.sockets.to(socket.id).emit('all_users', usersInThisObjet);
+            io.sockets.to(socketId).emit('all_users', usersInThisObjet);
         });
 
         // WebRTC 연결을 시도
@@ -97,18 +96,18 @@ module.exports = socketIoLoader = (io) => {
 
         // 클라이언트 연결 해제 처리
         socket.on('disconnect', () => {
-            console.log(`[${socketToObjet[socket.id]}]: ${socket.id} exit`);
-            const objetID = socketToObjet[socket.id];
+            console.log(`[${socketToObjet[socketId]}]: ${socketId} exit`);
+            const objetID = socketToObjet[socketId];
             let objet = users[objetID];
             if (objet) {
-                objet = objet.filter((user) => user.id !== socket.id);
+                objet = objet.filter((user) => user.id !== socketId);
                 users[objetID] = objet;
                 if (objet.length === 0) {
                     delete users[objetID];
                     return;
                 }
             }
-            socket.to(objetID).emit('user_exit', { id: socket.id });
+            socket.to(objetID).emit('user_exit', { socketId });
             console.log(users);
         });
     });
