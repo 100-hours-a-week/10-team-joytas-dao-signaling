@@ -2,6 +2,10 @@ const axios = require('axios');
 const config = require('../../config');
 const https = require('https');
 
+// TODO : 로깅 분리 및 모니터링 달기
+// TODO : 요청 분리
+// TOOD : 예외처리 분리
+
 module.exports = socketIoLoader = (io) => {
     let users = {};
 
@@ -26,9 +30,9 @@ module.exports = socketIoLoader = (io) => {
                         }),
                     }
                 );
-                console.log('Data : ', response.data);
+                console.log(`[ Connection ] : Objet:${objet_id} / User ${response.data.data}`);
             } catch (err) {
-                console.error('token error:', err.response?.data);
+                console.error('error:', err.response?.data);
                 socket.emit('error_message', {
                     error: err.response?.data || 'Unknown error',
                 });
@@ -36,13 +40,20 @@ module.exports = socketIoLoader = (io) => {
                 return;
             }
         } else {
-            console.log('token or objet_id is missing');
+            console.log('error: token or objet_id is missing');
             socket.disconnect(true);
             return;
         }
 
         socket.on('join_objet', (data) => {
             const { objet_id, nickname, user_id, profile_image } = data;
+
+            breakLine();
+            console.log(`[ Join Objet ] - Request`);
+            console.log(
+                `[ Join Objet ] - Data : Objet ID: ${objet_id} / Nickname: ${nickname} / User ID: ${user_id} / Profile Image: ${profile_image}`
+            );
+            breakLine();
 
             if (users[objet_id]) {
                 const objetConnectNumber = users[objet_id].length;
@@ -56,12 +67,17 @@ module.exports = socketIoLoader = (io) => {
             }
             socketToObjet[socket_id] = objet_id;
 
+            breakLine();
             socket.join(objet_id);
-            console.log(`[${socketToObjet[socket_id]}]: ${socket_id} enter`);
+            console.log(`[ Join Objet ] - [ Objet ID : ${socketToObjet[socket_id]}] / Socket ID ${socket_id} Enter`);
+            breakLine();
 
             const usersInThisObjet = users[objet_id].filter((user) => user.socket_id !== socket_id);
 
+            breakLine();
+            console.log(`[ Join Objet ] - User In This Objet `);
             console.log(usersInThisObjet);
+            breakLine();
 
             io.sockets.to(socket_id).emit('all_users', usersInThisObjet);
         });
@@ -95,7 +111,8 @@ module.exports = socketIoLoader = (io) => {
 
         // 클라이언트 연결 해제 처리
         socket.on('disconnect', () => {
-            console.log(`[${socketToObjet[socket_id]}]: ${socket_id} exit`);
+            // TODO : SPRING SERVER에 exit objet 요청
+            console.log(`[ Disconnection ] :[ Objet ID : ${socketToObjet[socket_id]}] / Socket ID : ${socket_id} EXIT`);
             const objetID = socketToObjet[socket_id];
             let objet = users[objetID];
             if (objet) {
@@ -110,4 +127,8 @@ module.exports = socketIoLoader = (io) => {
             console.log(users);
         });
     });
+};
+
+const breakLine = () => {
+    console.log('\n');
 };
