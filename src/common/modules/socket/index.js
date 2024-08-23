@@ -111,7 +111,8 @@ module.exports = socketIoLoader = (io) => {
 
         // 클라이언트 연결 해제 처리
         socket.on('disconnect', () => {
-            console.log(`[${socketToObjet[socket_id]}]: ${socket_id} exit`);
+            // TODO : SPRING SERVER에 exit objet 요청
+            console.log(`[ Disconnection ] :[ Objet ID : ${socketToObjet[socket_id]}] / Socket ID : ${socket_id} EXIT`);
             const objetID = socketToObjet[socket_id];
             let objet = users[objetID];
             if (objet) {
