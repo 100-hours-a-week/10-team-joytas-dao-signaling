@@ -15,7 +15,7 @@ module.exports = socketIoLoader = (io) => {
         if (token && objet_id) {
             try {
                 const response = await axios.post(
-                    config.springServerUrl,
+                    `${config.springServerUrl}/objets/signaling`,
                     { objet_id },
                     {
                         headers: {
