@@ -28,6 +28,8 @@ module.exports = socketIoLoader = (io) => {
                 );
                 console.log('Data : ', response.data);
             } catch (err) {
+                console.log(err);
+
                 console.error('token error:', err.response?.data);
                 socket.emit('error_message', {
                     error: err.response?.data || 'Unknown error',
