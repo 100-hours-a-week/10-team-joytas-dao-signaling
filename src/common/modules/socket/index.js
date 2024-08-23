@@ -10,8 +10,7 @@ module.exports = socketIoLoader = (io) => {
     const maximum = config.maximumConnection || 9;
 
     io.on('connection', async (socket) => {
-        const token = socket.handshake.query.token;
-        const objet_id = socket.handshake.query.objet_id;
+        const { token, objet_id, profile_image } = socket.handshake.query;
         if (token && objet_id) {
             try {
                 const response = await axios.post(
@@ -46,15 +45,16 @@ module.exports = socketIoLoader = (io) => {
         }
 
         socket.on('join_objet', (data) => {
+            const { nickname, user_id, profile_image } = data;
             if (users[data.objet]) {
                 const length = users[data.objet].length;
                 if (length === maximum) {
                     socket.to(socket.id).emit('objet_full');
                     return;
                 }
-                users[data.objet].push({ id: socket.id, nickname: data.nickname });
+                users[data.objet].push({ id: socket.id, nickname, user_id, profile_image });
             } else {
-                users[data.objet] = [{ id: socket.id, nickname: data.nickname }];
+                users[data.objet] = [{ id: socket.id, nickname, user_id, profile_image }];
             }
             socketToObjet[socket.id] = data.objet;
 
