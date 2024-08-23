@@ -58,7 +58,7 @@ module.exports = socketIoLoader = (io) => {
             socket.join(data.objet);
             console.log(`[${socketToObjet[socket_id]}]: ${socket_id} enter`);
 
-            const usersInThisObjet = users[data.objet].filter((user) => user.id !== socket_id);
+            const usersInThisObjet = users[data.objet].filter((user) => user.socket_id !== socket_id);
 
             console.log(usersInThisObjet);
 
@@ -98,7 +98,7 @@ module.exports = socketIoLoader = (io) => {
             const objetID = socketToObjet[socket_id];
             let objet = users[objetID];
             if (objet) {
-                objet = objet.filter((user) => user.id !== socket_id);
+                objet = objet.filter((user) => user.socket_id !== socket_id);
                 users[objetID] = objet;
                 if (objet.length === 0) {
                     delete users[objetID];
