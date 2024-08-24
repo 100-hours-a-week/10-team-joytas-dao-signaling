@@ -20,6 +20,10 @@ const config = {
 
     // SPRING
     springServerUrl: process.env.SPRING_SERVER_URL,
+
+    // REDIS
+    redisHost: process.env.REDIS_HOST,
+    redisPort: process.env.REDIS_PORT,
 };
 
 switch (process.env.NODE_ENV) {

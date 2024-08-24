@@ -5,12 +5,9 @@ const https = require('https');
 // TODO : 로깅 분리 및 모니터링 달기
 // TODO : 요청 분리
 // TOOD : 예외처리 분리
+const redisCli = require('../redis'); // Redis 클라이언트 모듈 경로
 
 module.exports = socketIoLoader = (io) => {
-    let users = {};
-
-    let socketToObjet = {};
-
     const maximum = config.maximumConnection || 9;
 
     io.on('connection', async (socket) => {
@@ -45,41 +42,38 @@ module.exports = socketIoLoader = (io) => {
             return;
         }
 
-        socket.on('join_objet', (data) => {
+        socket.on('join_objet', async (data) => {
             const { objet_id, nickname, user_id, profile_image } = data;
 
+            const objetKey = `objet:${objet_id}`;
+            const socketKey = `socket:${socket_id}`;
             breakLine();
             console.log(`[ Join Objet ] - Request`);
             console.log(
                 `[ Join Objet ] - Data : Objet ID: ${objet_id} / Nickname: ${nickname} / User ID: ${user_id} / Profile Image: ${profile_image}`
             );
-            breakLine();
 
-            if (users[objet_id]) {
-                const objetConnectNumber = users[objet_id].length;
-                if (objetConnectNumber === maximum) {
-                    socket.to(socket_id).emit('objet_full');
-                    return;
-                }
-                users[objet_id].push({ socket_id, nickname, user_id, profile_image });
-            } else {
-                users[objet_id] = [{ socket_id, nickname, user_id, profile_image }];
+            const usersInObjet = await redisCli.lRange(objetKey, 0, -1);
+            if (usersInObjet.length >= maximum) {
+                socket.emit('objet_full');
+                return;
             }
-            socketToObjet[socket_id] = objet_id;
 
-            breakLine();
+            // Add the user to the list in Redis
+            await redisCli.rPush(objetKey, JSON.stringify({ socket_id, nickname, user_id, profile_image }));
+            await redisCli.set(socketKey, objet_id);
+
             socket.join(objet_id);
-            console.log(`[ Join Objet ] - [ Objet ID : ${socketToObjet[socket_id]}] / Socket ID ${socket_id} Enter`);
+            console.log(`[ Join Objet ] - [Objet ID: ${objet_id}] / Socket ID: ${socket_id} Entered`);
             breakLine();
+            const usersInThisObjet = usersInObjet
+                .map((user) => JSON.parse(user))
+                .filter((user) => user.socket_id !== socket_id);
 
-            const usersInThisObjet = users[objet_id].filter((user) => user.socket_id !== socket_id);
-
-            breakLine();
             console.log(`[ Join Objet ] - User In This Objet `);
             console.log(usersInThisObjet);
             breakLine();
-
-            io.sockets.to(socket_id).emit('all_users', usersInThisObjet);
+            io.to(socket_id).emit('all_users', usersInThisObjet);
         });
 
         // WebRTC 연결을 시도
@@ -96,8 +90,10 @@ module.exports = socketIoLoader = (io) => {
 
         // WebRTC 연결에 대한 응답 처리
         socket.on('answer', (data) => {
-            //console.log(data.sdp);
-            socket.to(data.answerReceiveID).emit('getAnswer', { sdp: data.sdp, answerSendID: data.answerSendID });
+            socket.to(data.answerReceiveID).emit('getAnswer', {
+                sdp: data.sdp,
+                answerSendID: data.answerSendID,
+            });
         });
 
         // ICE 후보 정보 전송
@@ -110,21 +106,31 @@ module.exports = socketIoLoader = (io) => {
         });
 
         // 클라이언트 연결 해제 처리
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
             // TODO : SPRING SERVER에 exit objet 요청
-            console.log(`[ Disconnection ] :[ Objet ID : ${socketToObjet[socket_id]}] / Socket ID : ${socket_id} EXIT`);
-            const objetID = socketToObjet[socket_id];
-            let objet = users[objetID];
-            if (objet) {
-                objet = objet.filter((user) => user.socket_id !== socket_id);
-                users[objetID] = objet;
-                if (objet.length === 0) {
-                    delete users[objetID];
-                    return;
+            const socketKey = `socket:${socket_id}`;
+            const objet_id = await redisCli.get(socketKey);
+
+            if (objet_id) {
+                const objetKey = `objet:${objet_id}`;
+                let usersInObjet = await redisCli.lRange(objetKey, 0, -1);
+
+                usersInObjet = usersInObjet.filter((user) => {
+                    const parsedUser = JSON.parse(user);
+                    return parsedUser.socket_id !== socket_id;
+                });
+
+                await redisCli.del(socketKey);
+                await redisCli.del(objetKey);
+                await redisCli.rPush(objetKey, ...usersInObjet);
+
+                if (usersInObjet.length === 0) {
+                    await redisCli.del(objetKey);
                 }
+
+                socket.to(objet_id).emit('user_exit', { socket_id });
+                console.log(`[ Disconnection ] :[ Objet ID: ${objet_id}] / Socket ID: ${socket_id} EXIT`);
             }
-            socket.to(objetID).emit('user_exit', { socket_id });
-            console.log(users);
         });
     });
 };
