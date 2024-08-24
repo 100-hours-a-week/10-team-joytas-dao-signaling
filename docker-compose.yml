@@ -2,12 +2,11 @@ version: '3.5'
 services:
     server:
         build: .
-        environment:
-            - PORT=8083
-            - MAXIMUM=4
+        container_name: dao-signaling-server
         ports:
             - '8083:8083'
         networks:
             - docker-net
+        # TODO : 볼륨 지정
 networks:
     docker-net:
