@@ -10,7 +10,7 @@ const app = express();
 const socketio = require('socket.io');
 const { START_MESSAGE } = require('./src/common/constants/express');
 
-const initServer = async () => {
+const initLocalServer = async () => {
     await expressLoader(app);
 
     const key = fs.readFileSync('cert.key');
@@ -26,4 +26,22 @@ const initServer = async () => {
     });
 };
 
-initServer();
+const initProdServer = async () => {
+    await expressLoader(app);
+
+    const server = app.listen(config.port, () => {
+        console.log(START_MESSAGE);
+    });
+    const io = socketio.listen(server, { path: '/signaling/' });
+
+    await socketIoLoader(io);
+};
+
+switch (config.envMode) {
+    case 'prod':
+        initProdServer();
+        break;
+    default:
+        initLocalServer();
+        break;
+}
