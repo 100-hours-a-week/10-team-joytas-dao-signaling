@@ -2,7 +2,7 @@ module.exports = {
     apps: [
         {
             name: 'DAO-SIGNALING-SERVER',
-            script: './server.js',
+            script: './app.js',
             instances: 2,
             exec_mode: 'cluster',
             watch: false,

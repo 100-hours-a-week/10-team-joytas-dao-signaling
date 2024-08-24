@@ -10,3 +10,4 @@ services:
         # TODO : 볼륨 지정
 networks:
     docker-net:
+        - backend-network
