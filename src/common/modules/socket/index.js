@@ -122,7 +122,9 @@ module.exports = socketIoLoader = (io) => {
 
                 await redisCli.del(socketKey);
                 await redisCli.del(objetKey);
-                await redisCli.rPush(objetKey, ...usersInObjet);
+                for (const user of usersInObjet) {
+                    await redisCli.rPush(objetKey, user);
+                }
 
                 if (usersInObjet.length === 0) {
                     await redisCli.del(objetKey);
