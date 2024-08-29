@@ -12,12 +12,12 @@ module.exports = socketIoLoader = (io) => {
 
     io.on('connection', async (socket) => {
         const socket_id = socket.id;
-        const { token, objet_id } = socket.handshake.query;
-        if (token && objet_id) {
+        const { token, lounge_id } = socket.handshake.query;
+        if (token && lounge_id) {
             try {
                 const response = await axios.post(
                     `${config.springServerUrl}/objets/signaling`,
-                    { objet_id },
+                    { lounge_id },
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -27,7 +27,7 @@ module.exports = socketIoLoader = (io) => {
                         }),
                     }
                 );
-                console.log(`[ Connection ] : Objet:${objet_id} / User ${response.data.data}`);
+                console.log(`[ Connection ] : Lounge:${lounge_id} / User ${response.data.data}`);
             } catch (err) {
                 console.error('error:', err.response?.data);
                 socket.emit('error_message', {
@@ -37,7 +37,7 @@ module.exports = socketIoLoader = (io) => {
                 return;
             }
         } else {
-            console.log('error: token or objet_id is missing');
+            console.log('error: token or lounge_id is missing');
             socket.disconnect(true);
             return;
         }
