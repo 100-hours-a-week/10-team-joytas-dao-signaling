@@ -6,7 +6,7 @@ on:
 
 jobs:
     build:
-        runs-on: self-hosted
+        runs-on: prod-signaling-runner
 
         steps:
             - name: Checkout release
@@ -27,7 +27,7 @@ jobs:
             - name: Push to Dockerhub
               run: docker push jjikky/dao-signaling-server:latest
 
-            - name: Create .env file # GitHub Secrets를 사용해 .env 파일 생성
+            - name: Create .env file
               run: |
                   echo "# SERVER" > .env
                   echo "PORT=${{ secrets.PORT }}" >> .env
@@ -45,7 +45,7 @@ jobs:
                   echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
                   echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
 
-            - name: Run Docker container # Docker 컨테이너 실행
+            - name: Run Docker container
               run: |
                   docker stop dao-signaling-server || true
                   docker rm dao-signaling-server || true
