@@ -31,7 +31,7 @@ jobs:
               run: |
                   echo "# SERVER" > .env
                   echo "PORT=${{ secrets.PORT }}" >> .env
-                  echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
+                  echo "NODE_ENV=development" >> .env
                   echo "SERVER_PATH=${{ secrets.SERVER_PATH }}" >> .env
                   echo "CORS_WHITELIST=production" >> .env
                   echo "" >> .env
