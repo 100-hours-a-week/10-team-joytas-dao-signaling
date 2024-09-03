@@ -42,7 +42,7 @@ jobs:
                   echo "SPRING_SERVER_URL=${{ secrets.SPRING_SERVER_URL }}" >> .env
                   echo "" >> .env
                   echo "# REDIS" >> .env
-                  echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+                  echo "REDIS_HOST_DEV=${{ secrets.REDIS_HOST_DEV }}" >> .env
                   echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
 
             - name: Run Docker container
