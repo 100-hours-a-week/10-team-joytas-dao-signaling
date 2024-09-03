@@ -25,7 +25,7 @@ jobs:
               run: sudo docker tag dao-signaling-server:latest jjikky/dao-signaling-server:latest
 
             - name: Push to Dockerhub
-              run: sudo docker push jjikky/dao-signaling-server:latest
+              run: docker push jjikky/dao-signaling-server:latest
 
             - name: Create .env file # GitHub Secrets를 사용해 .env 파일 생성
               run: |
