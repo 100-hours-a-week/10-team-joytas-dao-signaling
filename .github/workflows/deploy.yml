@@ -19,13 +19,13 @@ jobs:
                   password: ${{ secrets.DOCKER_PASSWORD }}
 
             - name: Build the Docker image
-              run: docker build -t dao-signaling-server .
+              run: sudo docker build -t dao-signaling-server .
 
             - name: Tagging
-              run: docker tag dao-signaling-server:latest jjikky/dao-signaling-server:latest
+              run: sudo docker tag dao-signaling-server:latest jjikky/dao-signaling-server:latest
 
             - name: Push to Dockerhub
-              run: docker push jjikky/dao-signaling-server:latest
+              run: sudo docker push jjikky/dao-signaling-server:latest
 
             - name: Create .env file # GitHub Secrets를 사용해 .env 파일 생성
               run: |
@@ -47,6 +47,6 @@ jobs:
 
             - name: Run Docker container # Docker 컨테이너 실행
               run: |
-                  docker stop dao-signaling-server || true
-                  docker rm dao-signaling-server || true
-                  docker run -d --name dao-signaling-server --env-file .env --network backend-network -p 8083:8083 jjikky/dao-signaling-server:latest
+                  sudo docker stop dao-signaling-server || true
+                  sudo docker rm dao-signaling-server || true
+                  sudo docker run -d --name dao-signaling-server --env-file .env --network backend-network -p 8083:8083 jjikky/dao-signaling-server:latest
