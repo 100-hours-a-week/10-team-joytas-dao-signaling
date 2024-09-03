@@ -1,13 +1,13 @@
-version: "3.5"
+version: '3.5'
 services:
-  server:
-    build: .
-    environment:
-      - PORT=8085
-      - MAXIMUM=4
-    ports:
-      - "8085:8085"
-    networks:
-      - docker-net
+    server:
+        build: .
+        container_name: dao-signaling-server
+        ports:
+            - '8083:8083'
+        networks:
+            - docker-net
+        # TODO : 볼륨 지정
 networks:
-  docker-net:
+    docker-net:
+        - backend-network

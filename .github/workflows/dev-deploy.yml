@@ -1,0 +1,52 @@
+name: deploy
+
+on:
+    push:
+        branches: [dev]
+
+jobs:
+    build:
+        runs-on: dev-signaling-runner
+
+        steps:
+            - name: Checkout release
+              uses: actions/checkout@v3
+
+            - name: Login to DockerHub
+              uses: docker/login-action@v1
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
+
+            - name: Build the Docker image
+              run: docker build -t dao-signaling-server .
+
+            - name: Tagging
+              run: docker tag dao-signaling-server:latest jjikky/dao-signaling-server:latest
+
+            - name: Push to Dockerhub
+              run: docker push jjikky/dao-signaling-server:latest
+
+            - name: Create .env file
+              run: |
+                  echo "# SERVER" > .env
+                  echo "PORT=${{ secrets.PORT }}" >> .env
+                  echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
+                  echo "SERVER_PATH=${{ secrets.SERVER_PATH }}" >> .env
+                  echo "CORS_WHITELIST=production" >> .env
+                  echo "" >> .env
+                  echo "# RTC" >> .env
+                  echo "MAXIMUM_CONNECTION=${{ secrets.MAXIMUM_CONNECTION }}" >> .env
+                  echo "" >> .env
+                  echo "# SPRING" >> .env
+                  echo "SPRING_SERVER_URL=${{ secrets.SPRING_SERVER_URL }}" >> .env
+                  echo "" >> .env
+                  echo "# REDIS" >> .env
+                  echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+                  echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
+
+            - name: Run Docker container
+              run: |
+                  docker stop dao-signaling-server || true
+                  docker rm dao-signaling-server || true
+                  docker run -d --name dao-signaling-server --env-file .env --network backend-network -p 8083:8083 jjikky/dao-signaling-server:latest
