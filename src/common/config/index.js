@@ -22,17 +22,18 @@ const config = {
     springServerUrl: process.env.SPRING_SERVER_URL,
 
     // REDIS
-    redisHost: process.env.REDIS_HOST,
     redisPort: process.env.REDIS_PORT,
 };
 
 switch (process.env.NODE_ENV) {
     case 'production':
         config.envMode = 'prod';
+        config.redisHost = process.env.REDIS_HOST_PROD;
         break;
 
     case 'development':
         config.envMode = 'dev';
+        config.redisHost = process.env.REDIS_HOST_DEV;
         break;
 
     default:
