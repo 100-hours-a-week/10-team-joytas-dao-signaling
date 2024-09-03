@@ -6,7 +6,7 @@ on:
 
 jobs:
     build:
-        runs-on: self-hosted
+        runs-on: dev-signaling-runner
 
         steps:
             - name: Checkout release
@@ -19,21 +19,21 @@ jobs:
                   password: ${{ secrets.DOCKER_PASSWORD }}
 
             - name: Build the Docker image
-              run: sudo docker build -t dao-signaling-server .
+              run: docker build -t dao-signaling-server .
 
             - name: Tagging
-              run: sudo docker tag dao-signaling-server:latest jjikky/dao-signaling-server:latest
+              run: docker tag dao-signaling-server:latest jjikky/dao-signaling-server:latest
 
             - name: Push to Dockerhub
               run: docker push jjikky/dao-signaling-server:latest
 
-            - name: Create .env file # GitHub Secrets를 사용해 .env 파일 생성
+            - name: Create .env file
               run: |
                   echo "# SERVER" > .env
                   echo "PORT=${{ secrets.PORT }}" >> .env
                   echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
                   echo "SERVER_PATH=${{ secrets.SERVER_PATH }}" >> .env
-                  echo "CORS_WHITELIST=${{ secrets.CORS_WHITELIST }}" >> .env
+                  echo "CORS_WHITELIST=production" >> .env
                   echo "" >> .env
                   echo "# RTC" >> .env
                   echo "MAXIMUM_CONNECTION=${{ secrets.MAXIMUM_CONNECTION }}" >> .env
@@ -45,8 +45,8 @@ jobs:
                   echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
                   echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
 
-            - name: Run Docker container # Docker 컨테이너 실행
+            - name: Run Docker container
               run: |
-                  sudo docker stop dao-signaling-server || true
-                  sudo docker rm dao-signaling-server || true
-                  sudo docker run -d --name dao-signaling-server --env-file .env --network backend-network -p 8083:8083 jjikky/dao-signaling-server:latest
+                  docker stop dao-signaling-server || true
+                  docker rm dao-signaling-server || true
+                  docker run -d --name dao-signaling-server --env-file .env --network backend-network -p 8083:8083 jjikky/dao-signaling-server:latest
