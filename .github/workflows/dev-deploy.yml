@@ -39,7 +39,7 @@ jobs:
                   echo "MAXIMUM_CONNECTION=${{ secrets.MAXIMUM_CONNECTION }}" >> .env
                   echo "" >> .env
                   echo "# SPRING" >> .env
-                  echo "SPRING_SERVER_URL=${{ secrets.SPRING_SERVER_URL }}" >> .env
+                  echo "SPRING_SERVER_URL_DEV=${{ secrets.SPRING_SERVER_URL_DEV }}" >> .env
                   echo "" >> .env
                   echo "# REDIS" >> .env
                   echo "REDIS_HOST_DEV=${{ secrets.REDIS_HOST_DEV }}" >> .env

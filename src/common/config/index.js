@@ -18,9 +18,6 @@ const config = {
     // RTC
     maximumConnection: process.env.MAXIMUM_CONNECTION,
 
-    // SPRING
-    springServerUrl: process.env.SPRING_SERVER_URL,
-
     // REDIS
     redisPort: process.env.REDIS_PORT,
 };
@@ -28,11 +25,13 @@ const config = {
 switch (process.env.NODE_ENV) {
     case 'production':
         config.envMode = 'prod';
+        config.springServerUrl = process.env.SPRING_SERVER_URL_PROD;
         config.redisHost = process.env.REDIS_HOST_PROD;
         break;
 
     case 'development':
         config.envMode = 'dev';
+        config.springServerUrl = process.env.SPRING_SERVER_URL_DEV;
         config.redisHost = process.env.REDIS_HOST_DEV;
         break;
 
