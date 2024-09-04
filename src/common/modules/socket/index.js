@@ -86,6 +86,7 @@ module.exports = socketIoLoader = (io) => {
                 offerSendID: data.offerSendID,
                 // TODO : user_id로 변경
                 offerSendNickname: data.offerSendNickname,
+                offerSendProfileImage: data.offerSendProfileImage,
             });
         });
 
