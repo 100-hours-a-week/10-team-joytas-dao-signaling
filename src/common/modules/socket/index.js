@@ -74,6 +74,7 @@ module.exports = socketIoLoader = (io) => {
             console.log(usersInThisObjet);
             breakLine();
             io.to(socket_id).emit('all_users', usersInThisObjet);
+            socket.to(objet_id).emit('all_users', usersInThisObjet);
         });
 
         // WebRTC 연결을 시도
