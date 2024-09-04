@@ -53,8 +53,11 @@ jobs:
                   sudo docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
                   sudo docker pull jjikky/dao-signaling-server:dev
 
-            - name: Docker 컨테이너 시작
+            - name: blue green 배포
               run: |
-                  sudo docker stop dao-signaling-server || true
-                  docker rm dao-signaling-server || true
-                  docker run -d --name dao-signaling-server --network backend-network -p 8083:8083 jjikky/dao-signaling-server:dev
+                sudo chmod +x deploy.sh
+                sudo ./deploy.sh
+
+             - name: 도커 이미지 정리
+              run: |
+                sudo docker image prune --all --force
