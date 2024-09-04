@@ -4,6 +4,7 @@ const dayjs = require('dayjs');
 const mode = {
     dev: 'development',
     prod: 'production',
+    local: 'local',
 };
 
 exports.START_MESSAGE = `

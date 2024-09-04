@@ -34,9 +34,16 @@ switch (process.env.NODE_ENV) {
         config.springServerUrl = process.env.SPRING_SERVER_URL_DEV;
         config.redisHost = process.env.REDIS_HOST_DEV;
         break;
-
+    case 'local':
+        config.envMode = 'local';
+        config.springServerUrl = process.env.SPRING_SERVER_URL_LOCAL;
+        config.redisHost = process.env.REDIS_HOST_LOCAL;
+        break;
     default:
         console.warn(ErrorMessage.NODE_ENV_WRONG);
+        config.envMode = 'dev';
+        config.springServerUrl = process.env.SPRING_SERVER_URL_DEV;
+        config.redisHost = process.env.REDIS_HOST_DEV;
         break;
 }
 
