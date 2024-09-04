@@ -55,9 +55,9 @@ jobs:
 
             - name: blue green 배포
               run: |
-                sudo chmod +x deploy.sh
-                sudo ./deploy.sh
+                  sudo chmod +x deploy.sh
+                  sudo ./deploy.sh
 
-             - name: 도커 이미지 정리
+            - name: 도커 이미지 정리
               run: |
-                sudo docker image prune --all --force
+                  sudo docker image prune --all --force
