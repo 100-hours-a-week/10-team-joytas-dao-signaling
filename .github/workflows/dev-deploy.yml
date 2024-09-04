@@ -1,52 +1,60 @@
-name: deploy
+name: SIGNALING SERVER DEV CD
 
 on:
     push:
         branches: [dev]
 
 jobs:
-    build:
-        runs-on: dev-signaling-runner
+    docker-build-and-push:
+        runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout release
+            - name: 리포지토리 체크아웃
               uses: actions/checkout@v3
 
-            - name: Login to DockerHub
-              uses: docker/login-action@v1
-              with:
-                  username: ${{ secrets.DOCKER_USERNAME }}
-                  password: ${{ secrets.DOCKER_PASSWORD }}
-
-            - name: Build the Docker image
-              run: docker build -t dao-signaling-server .
-
-            - name: Tagging
-              run: docker tag dao-signaling-server:latest jjikky/dao-signaling-server:latest
-
-            - name: Push to Dockerhub
-              run: docker push jjikky/dao-signaling-server:latest
-
-            - name: Create .env file
+            - name: env 생성
               run: |
                   echo "# SERVER" > .env
                   echo "PORT=${{ secrets.PORT }}" >> .env
                   echo "NODE_ENV=development" >> .env
                   echo "SERVER_PATH=${{ secrets.SERVER_PATH }}" >> .env
                   echo "CORS_WHITELIST=production" >> .env
-                  echo "" >> .env
                   echo "# RTC" >> .env
                   echo "MAXIMUM_CONNECTION=${{ secrets.MAXIMUM_CONNECTION }}" >> .env
-                  echo "" >> .env
                   echo "# SPRING" >> .env
                   echo "SPRING_SERVER_URL_DEV=${{ secrets.SPRING_SERVER_URL_DEV }}" >> .env
-                  echo "" >> .env
                   echo "# REDIS" >> .env
                   echo "REDIS_HOST_DEV=${{ secrets.REDIS_HOST_DEV }}" >> .env
                   echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
 
-            - name: Run Docker container
+            - name: Docker Hub 로그인
+              uses: docker/login-action@v1
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
+
+            - name: Docker 이미지 빌드
+              run: docker build -t dao-signaling-server:dev .
+
+            - name: Docker 이미지 Tagging
+              run: docker tag dao-signaling-server:dev jjikky/dao-signaling-server:dev
+
+            - name: Docker Hub에 이미지 푸시
+              run: docker push jjikky/dao-signaling-server:dev
+
+    docker-pull-and-run:
+        runs-on: dev-signaling-runner
+        needs: [docker-build-and-push]
+        if: ${{ needs.docker-build-and-push.result == 'success' }}
+
+        steps:
+            - name: Docker Hub에서 Docker 이미지를 pull
               run: |
-                  docker stop dao-signaling-server || true
+                  sudo docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+                  sudo docker pull jjikky/dao-signaling-server:dev
+
+            - name: Docker 컨테이너 시작
+              run: |
+                  sudo docker stop dao-signaling-server || true
                   docker rm dao-signaling-server || true
-                  docker run -d --name dao-signaling-server --env-file .env --network backend-network -p 8083:8083 jjikky/dao-signaling-server:latest
+                  docker run -d --name dao-signaling-server --network backend-network -p 8083:8083 jjikky/dao-signaling-server:dev
