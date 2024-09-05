@@ -59,7 +59,7 @@ module.exports = socketIoLoader = (io) => {
             console.log('isUserExist: ', isUserExist);
 
             if (isUserExist) {
-                console.log('already joined user: ', user.user_id);
+                console.log('already joined user: ', user_id);
                 socket.emit('already_join');
                 socket.disconnect(true);
                 return;
