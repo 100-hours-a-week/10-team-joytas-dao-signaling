@@ -1,4 +1,4 @@
-name: SIGNALING SERVER PROD CD
+name: SIGNALING SERVER MAIN CD
 
 on:
     push:
@@ -18,7 +18,7 @@ jobs:
                   echo "PORT=${{ secrets.PORT }}" >> .env
                   echo "NODE_ENV=production" >> .env
                   echo "SERVER_PATH=${{ secrets.SERVER_PATH }}" >> .env
-                  echo "CORS_WHITELIST=production" >> .env
+                  echo "CORS_WHITELIST={{ secrets.CORS_WHITELIST }}" >> .env
                   echo "# RTC" >> .env
                   echo "MAXIMUM_CONNECTION=${{ secrets.MAXIMUM_CONNECTION }}" >> .env
                   echo "# SPRING" >> .env
@@ -55,6 +55,9 @@ jobs:
 
             - name: Docker 컨테이너 시작
               run: |
-                  sudo docker stop dao-signaling-server || true
-                  docker rm dao-signaling-server || true
-                  docker run -d --name dao-signaling-server --network backend-network -p 8083:8083 jjikky/dao-signaling-server:prod
+                  sudo chmod +x deploy.sh
+                  sudo ./deploy.sh
+
+            - name: 도커 이미지 정리
+              run: |
+                  sudo docker image prune --all --force

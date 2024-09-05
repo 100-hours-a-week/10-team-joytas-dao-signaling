@@ -18,7 +18,7 @@ jobs:
                   echo "PORT=${{ secrets.PORT }}" >> .env
                   echo "NODE_ENV=development" >> .env
                   echo "SERVER_PATH=${{ secrets.SERVER_PATH }}" >> .env
-                  echo "CORS_WHITELIST=production" >> .env
+                  echo "CORS_WHITELIST={{secrets.CORS_WHITELIST}}" >> .env
                   echo "# RTC" >> .env
                   echo "MAXIMUM_CONNECTION=${{ secrets.MAXIMUM_CONNECTION }}" >> .env
                   echo "# SPRING" >> .env
