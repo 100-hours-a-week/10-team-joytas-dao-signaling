@@ -48,7 +48,6 @@ module.exports = socketIoLoader = (io) => {
             const objetKey = `objet:${objet_id}`;
             const socketKey = `socket:${socket_id}`;
             breakLine();
-            console.log(`[ Join Objet ] - Request`);
             console.log(
                 `[ Join Objet ] - Data : Objet ID: ${objet_id} / Nickname: ${nickname} / User ID: ${user_id} / Profile Image: ${profile_image}`
             );
@@ -57,13 +56,19 @@ module.exports = socketIoLoader = (io) => {
 
             const isUserExist = usersInObjet.map((user) => JSON.parse(user)).filter((user) => user.user_id === user_id);
 
+            console.log('isUserExist: ', isUserExist);
+
             if (isUserExist) {
+                console.log('already joined user: ', user.user_id);
                 socket.emit('already_join');
+                socket.disconnect(true);
                 return;
             }
 
             if (usersInObjet.length >= maximum) {
+                console.log('objet is full: ', objet_id);
                 socket.emit('objet_full');
+                socket.disconnect(true);
                 return;
             }
 
