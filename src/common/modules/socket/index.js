@@ -60,14 +60,18 @@ module.exports = socketIoLoader = (io) => {
 
             if (isUserExist.length > 0) {
                 console.log('already joined user: ', user_id);
-                socket.emit('already_join');
+                socket.emit('error_message', {
+                    error: '이미 음성채팅에 참가중입니다.',
+                });
                 socket.disconnect(true);
                 return;
             }
 
             if (usersInObjet.length >= maximum) {
                 console.log('objet is full: ', objet_id);
-                socket.emit('objet_full');
+                socket.emit('error_message', {
+                    error: `해당 오브제 음성채팅방이 가득 찼습니다.`,
+                });
                 socket.disconnect(true);
                 return;
             }
