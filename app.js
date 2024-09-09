@@ -43,6 +43,7 @@ switch (config.envMode) {
         break;
     case 'dev':
         initProdServer();
+        break;
     default:
         initLocalServer();
         break;
