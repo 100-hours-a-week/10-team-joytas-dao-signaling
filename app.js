@@ -4,6 +4,7 @@ const https = require('https');
 const config = require('./src/common/config');
 const expressLoader = require('./src/common/modules/express');
 const socketIoLoader = require('./src/common/modules/socket');
+const logger = require('./src/common/modules/logger');
 
 const app = express();
 
@@ -22,7 +23,7 @@ const initLocalServer = async () => {
     await socketIoLoader(io);
 
     server.listen(config.port, () => {
-        console.log(START_MESSAGE);
+        logger.info(START_MESSAGE);
     });
 };
 
@@ -30,7 +31,7 @@ const initProdServer = async () => {
     await expressLoader(app);
 
     const server = app.listen(config.port, () => {
-        console.log(START_MESSAGE);
+        logger.info({ message: START_MESSAGE });
     });
     const io = socketio.listen(server, { path: '/signaling/' });
 

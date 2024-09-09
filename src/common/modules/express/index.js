@@ -1,6 +1,7 @@
 const cors = require('cors');
 const config = require('../../config');
 const morgan = require('morgan');
+const logger = require('../logger');
 
 module.exports = expressLoader = (app) => {
     app.use(morgan('dev'));
@@ -12,7 +13,7 @@ module.exports = expressLoader = (app) => {
                 if (config.corsWhiteList.indexOf(origin) !== -1 || !origin) {
                     return callback(null, true);
                 }
-                console.warn(`Blocked CORS request from: ${origin}`);
+                logger.error(`Blocked CORS request from: ${origin}`);
                 callback(new Error('CORS ERROR'));
             },
         })(req, res, next);
