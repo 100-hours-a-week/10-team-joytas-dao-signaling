@@ -4,7 +4,6 @@ const https = require('https');
 
 // TODO : 로깅 분리 및 모니터링 달기
 // TODO : 요청 분리
-// TOOD : 예외처리 분리
 const redisCli = require('../redis');
 
 module.exports = socketIoLoader = (io) => {
@@ -53,6 +52,23 @@ module.exports = socketIoLoader = (io) => {
             );
 
             const usersInObjet = await redisCli.lRange(objetKey, 0, -1);
+
+            const isUserExist = usersInObjet.map((user) => JSON.parse(user)).filter((user) => user.user_id === user_id);
+            if (isUserExist.length > 0) {
+                socket.emit('error_message', {
+                    error: { status: 400, message: '이미 음성채팅에 참가중입니다.' },
+                });
+                socket.disconnect(true);
+                return;
+            }
+
+            if (usersInObjet.length >= maximum) {
+                socket.emit('error_message', {
+                    error: { status: 403, message: '음성 채팅방이 가득 찼습니다.' },
+                });
+                socket.disconnect(true);
+                return;
+            }
 
             await redisCli.rPush(objetKey, JSON.stringify({ socket_id, nickname, user_id, profile_image }));
             await redisCli.set(socketKey, objet_id);
