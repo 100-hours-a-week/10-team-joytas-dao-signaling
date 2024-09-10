@@ -3,7 +3,7 @@ const fs = require('fs');
 const https = require('https');
 const config = require('./src/common/config');
 const expressLoader = require('./src/common/modules/express');
-const socketIoLoader = require('./src/common/modules/socket');
+const socketIoLoader = require('./src/socket.loader');
 const logger = require('./src/common/modules/logger');
 
 const app = express();
