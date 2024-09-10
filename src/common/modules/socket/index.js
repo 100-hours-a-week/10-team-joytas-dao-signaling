@@ -1,6 +1,8 @@
 const axios = require('axios');
-const config = require('../../config');
 const https = require('https');
+const { v4: uuidv4 } = require('uuid');
+
+const config = require('../../config');
 const logger = require('../logger');
 const redisCli = require('../redis');
 
@@ -10,11 +12,26 @@ const redisCli = require('../redis');
 module.exports = socketIoLoader = (io) => {
     const maximum = config.maximumConnection || 9;
 
+    io.use((socket, next) => {
+        let xRequestId = socket.handshake.headers['x-request-id'];
+
+        if (!xRequestId) {
+            xRequestId = uuidv4();
+            logger.info(`x-request-id 생성 : ${xRequestId}`);
+        }
+
+        socket.xRequestId = xRequestId;
+        logger.info(`x-request-id: ${xRequestId}로 웹소켓 연결 설정`);
+        next();
+    });
+
     io.on('connection', async (socket) => {
         const socket_id = socket.id;
         const { token, lounge_id } = socket.handshake.query;
 
         if (token && lounge_id) {
+            const startTime = process.hrtime();
+
             try {
                 const response = await axios.post(
                     `${config.springServerUrl}/objets/signaling`,
@@ -22,20 +39,23 @@ module.exports = socketIoLoader = (io) => {
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
+                            'x-request-id': socket.xRequestId,
                         },
                         httpsAgent: new https.Agent({
                             rejectUnauthorized: false,
                         }),
                     }
                 );
+                const responseTime = getResponseTimeMs(startTime);
                 logger.info(
-                    `[연결 성공] - 라운지 ID: ${lounge_id}, 사용자 ID: ${response.data.data}, 소켓 ID: ${socket_id}`
+                    `[연결 성공] - 라운지 ID: ${lounge_id}, 사용자 ID: ${response.data.data}, 소켓 ID: ${socket_id}, x-request-id: ${socket.xRequestId}, 응답 시간: ${responseTime}ms`
                 );
             } catch (err) {
+                const responseTime = getResponseTimeMs(startTime);
                 logger.error(
                     `[연결 오류] - 라운지 ID: ${lounge_id}, 소켓 ID: ${socket_id}, 오류 내용: ${
                         err.response?.data || err.message
-                    }`
+                    }, x-request-id: ${socket.xRequestId}, 응답 시간: ${responseTime}ms`
                 );
                 socket.emit('error_message', {
                     error: err.response?.data || '알 수 없는 오류',
@@ -55,11 +75,12 @@ module.exports = socketIoLoader = (io) => {
         socket.on('join_objet', async (data) => {
             const { objet_id, nickname, user_id, profile_image } = data;
 
+            const startTime = process.hrtime();
             const objetKey = `objet:${objet_id}`;
             const socketKey = `socket:${socket_id}`;
 
             logger.info(
-                `[참여 요청] - 사용자: ${nickname} (ID: ${user_id})가 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}에 참여 시도`
+                `[참여 요청] - 사용자: ${nickname} (ID: ${user_id})가 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}에 참여 시도, x-request-id: ${socket.xRequestId}`
             );
 
             const usersInObjet = await redisCli.lRange(objetKey, 0, -1);
@@ -67,7 +88,7 @@ module.exports = socketIoLoader = (io) => {
 
             if (isUserExist) {
                 logger.warn(
-                    `[참여 거부] - 이미 채팅에 참여 중인 사용자: ${nickname} (ID: ${user_id}), 소켓 ID: ${socket_id}`
+                    `[참여 거부] - 이미 채팅에 참여 중인 사용자: ${nickname} (ID: ${user_id}), 소켓 ID: ${socket_id}, x-request-id: ${socket.xRequestId}`
                 );
                 socket.emit('error_message', {
                     error: { status: 400, message: '이미 음성채팅에 참가중입니다.' },
@@ -77,7 +98,9 @@ module.exports = socketIoLoader = (io) => {
             }
 
             if (usersInObjet.length >= maximum) {
-                logger.warn(`[참여 거부] - 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}, 채팅방이 가득 찼습니다.`);
+                logger.warn(
+                    `[참여 거부] - 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}, 채팅방이 가득 찼습니다, x-request-id: ${socket.xRequestId}`
+                );
                 socket.emit('error_message', {
                     error: { status: 403, message: '음성 채팅방이 가득 찼습니다.' },
                 });
@@ -89,22 +112,27 @@ module.exports = socketIoLoader = (io) => {
             await redisCli.set(socketKey, objet_id);
 
             socket.join(objet_id);
+            const responseTime = getResponseTimeMs(startTime);
             logger.info(
-                `[참여 성공] - 사용자: ${nickname} (ID: ${user_id})가 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}에 참여`
+                `[참여 성공] - 사용자: ${nickname} (ID: ${user_id})가 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}에 참여, x-request-id: ${socket.xRequestId}, 응답 시간: ${responseTime}ms`
             );
 
             const usersInThisObjet = usersInObjet
                 .map((user) => JSON.parse(user))
                 .filter((user) => user.socket_id !== socket_id);
 
-            logger.info(`[현재 사용자] - 오브제 ID: ${objet_id}에 있는 사용자 목록:`);
+            logger.info(
+                `[현재 사용자] - 오브제 ID: ${objet_id}에 있는 사용자 목록, x-request-id: ${socket.xRequestId}`
+            );
             logger.info(usersInThisObjet);
 
             io.to(socket_id).emit('all_users', usersInThisObjet);
         });
 
         socket.on('offer', (data) => {
-            logger.info(`[제안] - SDP 제안이 ${data.offerSendID}에서 ${data.offerReceiveID}로 전송됨`);
+            logger.info(
+                `[제안] - SDP 제안이 ${data.offerSendID}에서 ${data.offerReceiveID}로 전송됨, x-request-id: ${socket.xRequestId}`
+            );
             socket.to(data.offerReceiveID).emit('getOffer', {
                 sdp: data.sdp,
                 offerSendID: data.offerSendID,
@@ -114,7 +142,9 @@ module.exports = socketIoLoader = (io) => {
         });
 
         socket.on('answer', (data) => {
-            logger.info(`[응답] - SDP 응답이 ${data.answerSendID}에서 ${data.answerReceiveID}로 전송됨`);
+            logger.info(
+                `[응답] - SDP 응답이 ${data.answerSendID}에서 ${data.answerReceiveID}로 전송됨, x-request-id: ${socket.xRequestId}`
+            );
             socket.to(data.answerReceiveID).emit('getAnswer', {
                 sdp: data.sdp,
                 answerSendID: data.answerSendID,
@@ -122,7 +152,9 @@ module.exports = socketIoLoader = (io) => {
         });
 
         socket.on('candidate', (data) => {
-            logger.info(`[후보] - ICE 후보가 ${data.candidateSendID}에서 ${data.candidateReceiveID}로 전송됨`);
+            logger.info(
+                `[후보] - ICE 후보가 ${data.candidateSendID}에서 ${data.candidateReceiveID}로 전송됨, x-request-id: ${socket.xRequestId}`
+            );
             socket.to(data.candidateReceiveID).emit('getCandidate', {
                 candidate: data.candidate,
                 candidateSendID: data.candidateSendID,
@@ -153,8 +185,16 @@ module.exports = socketIoLoader = (io) => {
                 }
 
                 socket.to(objet_id).emit('user_exit', { socket_id });
-                logger.info(`[연결 종료] - 오브제 ID: ${objet_id}에서 사용자 ${socket_id} 연결 종료`);
+                logger.info(
+                    `[연결 종료] - 오브제 ID: ${objet_id}에서 사용자 ${socket_id} 연결 종료, x-request-id: ${socket.xRequestId}`
+                );
             }
         });
     });
 };
+
+function getResponseTimeMs(startTime) {
+    const diff = process.hrtime(startTime);
+    // 초 단위를 밀리초로 변환하여 소수점 두 자리까지 표시
+    return (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
+}
