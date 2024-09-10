@@ -5,8 +5,7 @@ const config = require('../../config');
 
 const { combine, label, printf } = winston.format;
 
-//* 로그 파일 저장 경로 → 루트 경로/logs 폴더
-const logDir = `${process.cwd()}/logs/signaling`;
+const logDir = '/app/logs/signaling';
 
 const timezoned = () => {
     const now = new Date();
