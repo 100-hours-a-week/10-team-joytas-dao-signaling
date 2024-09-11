@@ -1,19 +1,37 @@
 const axios = require('axios');
-const config = require('../../config');
 const https = require('https');
+const { v4: uuidv4 } = require('uuid');
 
-// TODO : 로깅 분리 및 모니터링 달기
+const config = require('../../config');
+const logger = require('../logger');
+const redisCli = require('../redis');
+
+// TODO : 모니터링 추가
 // TODO : 요청 분리
-// TOOD : 예외처리 분리
-const redisCli = require('../redis'); // Redis 클라이언트 모듈 경로
 
 module.exports = socketIoLoader = (io) => {
     const maximum = config.maximumConnection || 9;
 
+    io.use((socket, next) => {
+        let xRequestId = socket.handshake.headers['x-request-id'];
+
+        if (!xRequestId) {
+            xRequestId = uuidv4();
+            logger.info(`x-request-id 생성 : ${xRequestId}`);
+        }
+
+        socket.xRequestId = xRequestId;
+        logger.info(`x-request-id: ${xRequestId}로 웹소켓 연결 설정`);
+        next();
+    });
+
     io.on('connection', async (socket) => {
         const socket_id = socket.id;
         const { token, lounge_id } = socket.handshake.query;
+
         if (token && lounge_id) {
+            const startTime = process.hrtime();
+
             try {
                 const response = await axios.post(
                     `${config.springServerUrl}/objets/signaling`,
@@ -21,23 +39,35 @@ module.exports = socketIoLoader = (io) => {
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
+                            'x-request-id': socket.xRequestId,
                         },
                         httpsAgent: new https.Agent({
                             rejectUnauthorized: false,
                         }),
                     }
                 );
-                console.log(`[ Connection ] : Lounge:${lounge_id} / User ${response.data.data}`);
+                const responseTime = getResponseTimeMs(startTime);
+                logger.info(
+                    `[연결 성공] - 라운지 ID: ${lounge_id}, 사용자 ID: ${response.data.data}, 소켓 ID: ${socket_id}, x-request-id: ${socket.xRequestId}, 응답 시간: ${responseTime}ms`
+                );
             } catch (err) {
-                console.error('error:', err.response?.data);
+                const responseTime = getResponseTimeMs(startTime);
+                logger.error(
+                    `[연결 오류] - 라운지 ID: ${lounge_id}, 소켓 ID: ${socket_id}, 오류 내용: ${
+                        err.response?.data || err.message
+                    }, x-request-id: ${socket.xRequestId}, 응답 시간: ${responseTime}ms`
+                );
                 socket.emit('error_message', {
-                    error: err.response?.data || 'Unknown error',
+                    error: err.response?.data || '알 수 없는 오류',
                 });
                 socket.disconnect(true);
                 return;
             }
         } else {
-            console.log('error: token or lounge_id is missing');
+            logger.warn(`[연결 실패] - 토큰 또는 라운지 ID가 없습니다. 소켓 ID: ${socket_id}`);
+            socket.emit('error_message', {
+                error: '토큰 또는 라운지 ID가 없습니다',
+            });
             socket.disconnect(true);
             return;
         }
@@ -45,70 +75,93 @@ module.exports = socketIoLoader = (io) => {
         socket.on('join_objet', async (data) => {
             const { objet_id, nickname, user_id, profile_image } = data;
 
+            const startTime = process.hrtime();
             const objetKey = `objet:${objet_id}`;
             const socketKey = `socket:${socket_id}`;
-            breakLine();
-            console.log(`[ Join Objet ] - Request`);
-            console.log(
-                `[ Join Objet ] - Data : Objet ID: ${objet_id} / Nickname: ${nickname} / User ID: ${user_id} / Profile Image: ${profile_image}`
+
+            logger.info(
+                `[참여 요청] - 사용자: ${nickname} (ID: ${user_id})가 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}에 참여 시도, x-request-id: ${socket.xRequestId}`
             );
 
             const usersInObjet = await redisCli.lRange(objetKey, 0, -1);
-            if (usersInObjet.length >= maximum) {
-                socket.emit('objet_full');
+            const isUserExist = usersInObjet.map((user) => JSON.parse(user)).find((user) => user.user_id === user_id);
+
+            if (isUserExist) {
+                logger.warn(
+                    `[참여 거부] - 이미 채팅에 참여 중인 사용자: ${nickname} (ID: ${user_id}), 소켓 ID: ${socket_id}, x-request-id: ${socket.xRequestId}`
+                );
+                socket.emit('error_message', {
+                    error: { status: 400, message: '이미 음성채팅에 참가중입니다.' },
+                });
+                socket.disconnect(true);
                 return;
             }
 
-            // Add the user to the list in Redis
+            if (usersInObjet.length >= maximum) {
+                logger.warn(
+                    `[참여 거부] - 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}, 채팅방이 가득 찼습니다, x-request-id: ${socket.xRequestId}`
+                );
+                socket.emit('error_message', {
+                    error: { status: 403, message: '음성 채팅방이 가득 찼습니다.' },
+                });
+                socket.disconnect(true);
+                return;
+            }
+
             await redisCli.rPush(objetKey, JSON.stringify({ socket_id, nickname, user_id, profile_image }));
             await redisCli.set(socketKey, objet_id);
 
             socket.join(objet_id);
-            console.log(`[ Join Objet ] - [Objet ID: ${objet_id}] / Socket ID: ${socket_id} Entered`);
-            breakLine();
+            const responseTime = getResponseTimeMs(startTime);
+            logger.info(
+                `[참여 성공] - 사용자: ${nickname} (ID: ${user_id})가 오브제 ID: ${objet_id}, 소켓 ID: ${socket_id}에 참여, x-request-id: ${socket.xRequestId}, 응답 시간: ${responseTime}ms`
+            );
+
             const usersInThisObjet = usersInObjet
                 .map((user) => JSON.parse(user))
                 .filter((user) => user.socket_id !== socket_id);
 
-            console.log(`[ Join Objet ] - User In This Objet `);
-            console.log(usersInThisObjet);
-            breakLine();
+            logger.info(
+                `[현재 사용자] - 오브제 ID: ${objet_id}에 있는 사용자 목록, x-request-id: ${socket.xRequestId}`
+            );
+            logger.info(usersInThisObjet);
+
             io.to(socket_id).emit('all_users', usersInThisObjet);
         });
 
-        // WebRTC 연결을 시도
         socket.on('offer', (data) => {
-            //console.log(data.sdp);
-            // 대상 사용자에게 연결 제안(offer)을 전송.
+            logger.info(
+                `[제안] - SDP 제안이 ${data.offerSendID}에서 ${data.offerReceiveID}로 전송됨, x-request-id: ${socket.xRequestId}`
+            );
             socket.to(data.offerReceiveID).emit('getOffer', {
                 sdp: data.sdp,
                 offerSendID: data.offerSendID,
-                // TODO : user_id로 변경
                 offerSendNickname: data.offerSendNickname,
                 offerSendProfileImage: data.offerSendProfileImage,
             });
         });
 
-        // WebRTC 연결에 대한 응답 처리
         socket.on('answer', (data) => {
+            logger.info(
+                `[응답] - SDP 응답이 ${data.answerSendID}에서 ${data.answerReceiveID}로 전송됨, x-request-id: ${socket.xRequestId}`
+            );
             socket.to(data.answerReceiveID).emit('getAnswer', {
                 sdp: data.sdp,
                 answerSendID: data.answerSendID,
             });
         });
 
-        // ICE 후보 정보 전송
         socket.on('candidate', (data) => {
-            //console.log(data.candidate);
+            logger.info(
+                `[후보] - ICE 후보가 ${data.candidateSendID}에서 ${data.candidateReceiveID}로 전송됨, x-request-id: ${socket.xRequestId}`
+            );
             socket.to(data.candidateReceiveID).emit('getCandidate', {
                 candidate: data.candidate,
                 candidateSendID: data.candidateSendID,
             });
         });
 
-        // 클라이언트 연결 해제 처리
         socket.on('disconnect', async () => {
-            // TODO : SPRING SERVER에 exit objet 요청
             const socketKey = `socket:${socket_id}`;
             const objet_id = await redisCli.get(socketKey);
 
@@ -122,22 +175,26 @@ module.exports = socketIoLoader = (io) => {
                 });
 
                 await redisCli.del(socketKey);
-                await redisCli.del(objetKey);
-                for (const user of usersInObjet) {
-                    await redisCli.rPush(objetKey, user);
-                }
-
-                if (usersInObjet.length === 0) {
+                if (usersInObjet.length > 0) {
+                    await redisCli.del(objetKey);
+                    for (const user of usersInObjet) {
+                        await redisCli.rPush(objetKey, user);
+                    }
+                } else {
                     await redisCli.del(objetKey);
                 }
 
                 socket.to(objet_id).emit('user_exit', { socket_id });
-                console.log(`[ Disconnection ] :[ Objet ID: ${objet_id}] / Socket ID: ${socket_id} EXIT`);
+                logger.info(
+                    `[연결 종료] - 오브제 ID: ${objet_id}에서 사용자 ${socket_id} 연결 종료, x-request-id: ${socket.xRequestId}`
+                );
             }
         });
     });
 };
 
-const breakLine = () => {
-    console.log('\n');
-};
+function getResponseTimeMs(startTime) {
+    const diff = process.hrtime(startTime);
+    // 초 단위를 밀리초로 변환하여 소수점 두 자리까지 표시
+    return (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
+}

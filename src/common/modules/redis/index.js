@@ -1,5 +1,6 @@
 const { createClient } = require('redis');
 const config = require('../../config');
+const logger = require('../logger');
 
 const redisClient = createClient({
     socket: {
@@ -10,11 +11,11 @@ const redisClient = createClient({
 });
 
 redisClient.on('connect', () => {
-    console.info('✅ Connected to Redis');
+    logger.info('✅ Connected to Redis');
 });
 
 redisClient.on('error', (err) => {
-    console.error('Redis Client Error', err);
+    logger.error('Redis Client Error', err);
 });
 
 redisClient.connect().then();
