@@ -25,7 +25,7 @@ module.exports = socketIoLoader = (io) => {
 
             try {
                 const response = await axios.post(
-                    `${config.springServerUrl}/objets/validate`,
+                    `${config.springServerUrl}/lounges/validate`,
                     { lounge_id },
                     {
                         headers: {
