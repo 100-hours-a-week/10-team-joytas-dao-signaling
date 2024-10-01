@@ -1,0 +1,14 @@
+services:
+    dao-signaling-server:
+        build: .
+        container_name: dao-signaling-server
+        env_file:
+            - .env
+        networks:
+            - backend-network
+        ports:
+            - '8083:8083'
+
+networks:
+    backend-network:
+        external: true
