@@ -57,6 +57,19 @@ const logSuccess = (socket, lounge_id, socket_id, startTime) => {
     );
 };
 
+const handleError = (err, socket, lounge_id, socket_id, startTime) => {
+    const responseTime = getResponseTimeMs(startTime);
+    logger.error(
+        `[연결 오류] - 라운지 ID: ${lounge_id}, 소켓 ID: ${socket_id}, 오류 내용: ${
+            JSON.stringify(err.response?.data) || err.message
+        }, x-request-id: ${socket.xRequestId}, 응답 시간: ${responseTime}ms`
+    );
+    socket.emit('error_message', {
+        error: err.response?.data || '알 수 없는 오류',
+    });
+    socket.disconnect(true);
+};
+
 const setupSocketEvents = (socket, io, socket_id) => {
     socket.on('join_objet', async (data) => {
         await handleObjetJoin(io, socket, data, socket_id);
