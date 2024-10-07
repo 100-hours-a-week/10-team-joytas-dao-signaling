@@ -9,7 +9,6 @@ module.exports = expressLoader = (app) => {
         cors({
             credentials: true,
             origin: (origin, callback) => {
-                // TODO : SSL 연결 후 !origin 삭제
                 if (config.corsWhiteList.indexOf(origin) !== -1 || !origin) {
                     return callback(null, true);
                 }
@@ -19,7 +18,7 @@ module.exports = expressLoader = (app) => {
         })(req, res, next);
     });
 
-    app.use('/', (req, res) => {
+    app.use('/', (_, res) => {
         res.status(200).send('DAO SIGNALING SERVER');
     });
 };
