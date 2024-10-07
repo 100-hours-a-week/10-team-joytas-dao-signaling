@@ -1,15 +1,14 @@
-const express = require('express');
 const fs = require('fs');
 const https = require('https');
+const express = require('express');
+const socketio = require('socket.io');
 const config = require('./src/common/config');
+const logger = require('./src/common/modules/logger');
 const expressLoader = require('./src/common/modules/express');
 const socketIoLoader = require('./src/handlers/socket.handler');
-const logger = require('./src/common/modules/logger');
+const { START_MESSAGE } = require('./src/common/constants/express');
 
 const app = express();
-
-const socketio = require('socket.io');
-const { START_MESSAGE } = require('./src/common/constants/express');
 
 const initLocalServer = async () => {
     await expressLoader(app);
